@@ -1,43 +1,35 @@
 
-class Node:
-
-    parents = []
-    children = []
-    status = None
-    name = None
-    probability = []
-    markovBlanket = []
-
-    def __init__(self,parents,children, status,table,name,probability,markovBlanket):
+class Node(object):
+    def __init__(self, name, parents=None, children=None, status=None, probability=None, markov_blanket=None):
         super(Node, self).__init__()
+        self.name = name
         self.parents = parents
         self.children = children
+
         self.status = status
-        self.table = table
-        self.name = name
         self.probability = probability
-        self.markovBlanket = markovBlanket
+        self.markov_blanket = markov_blanket
 
-    def AddParern(Node):
-        self.parents.append(Node)
+    def add_parent(self, node):
+        self.parents.append(node)
 
-    def AddChild(Node):
-        self.append(Node)
+    def add_child(self, node):
+        self.children.append(node)
 
-    def SetStatus(Status):
-        self.status = Status
+    def set_status(self, status):
+        self.status = status
 
-    def GetStatus():
+    def get_status(self):
         return self.status
 
-    def CalculateProbability():
+    def calculate_probability(self):
+        return
 
+    def set_markov_blanket(self):
+        self.markov_blanket.extend(self.parents)  # Adds all the parents to the Markov Blanket
+        self.markov_blanket.extend(self.children)  # Adds all the children to the Markov Blanket
 
-
-    def SetMarkovBlanket():
-        self.markovBlanket.extend(self.parents) # Adds all the parents to the Markov Blanket
-        self.markovBlanket.extend(self.children) # Adds all the children to the Markov Blanket
-        for child in children: # Loops through all the children
-            for parent in child.parents: # Loops through all the parents of each child
-                if parent not in self.markovBlanket: # If any of those parents are not the Markov Blanket
-                    self.markovBlanket.append(parent) # It adds them to it
+        for child in self.children:  # Loops through all the children
+            for parent in child.parents:  # Loops through all the parents of each child
+                if parent not in self.markov_blanket:  # If any of those parents are not the Markov Blanket
+                    self.markov_blanket.append(parent)  # It adds them to it
