@@ -1,11 +1,11 @@
 
+
 class Node:
 
     parents = []
     children = []
     status = None
     name = None
-    probability = []
     markovBlanket = []
 
     def __init__(self,parents,children, status,table,name,probability,markovBlanket):
@@ -15,7 +15,6 @@ class Node:
         self.status = status
         self.table = table
         self.name = name
-        self.probability = probability
         self.markovBlanket = markovBlanket
 
     def AddParern(Node):
@@ -30,8 +29,13 @@ class Node:
     def GetStatus():
         return self.status
 
-    def CalculateProbability():
+    def CalculateProbability(Constraints):
 
+
+        conditions = 1
+        for cons in Constraints:
+            conditions= conditions*options.get(cons)
+        return probabilities.get(conditions)
 
 
     def SetMarkovBlanket():
