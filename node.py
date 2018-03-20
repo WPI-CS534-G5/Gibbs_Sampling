@@ -12,11 +12,11 @@ class Node:
     def GetName(self):
         return self.name
 
-    def AddParernt(self, Node):
-        self.parents.append(Node)
+    def AddParent(self, node):
+        self.parents.append(node)
 
-    def AddChild(self, Node):
-        self.children.append(Node)
+    def AddChild(self, node):
+        self.children.append(node)
 
     def GetParents(self):
         return self.parents
@@ -24,17 +24,11 @@ class Node:
     def GetChildren(self):
         return self.children
 
-    def SetStatus(self, Status):
-        self.status = Status
+    def SetStatus(self, status):
+        self.status = status
 
     def GetStatus(self):
         return self.status
-
-    def CalculateProbability(self, Constraints):
-        conditions = 1
-        for cons in Constraints:
-            conditions = conditions * options.get(cons)
-        return probabilities.get(conditions)
 
     def GetMarkovBlanket(self):
         return self.markovBlanket
@@ -46,3 +40,10 @@ class Node:
             for parent in child.parents:  # Loops through all the parents of each child
                 if parent not in self.markovBlanket and parent != self:  # If any of those parents are not the Markov Blanket
                     self.markovBlanket.append(parent)  # It adds them to it
+
+
+def CalculateProbability(constraints):
+    conditions = 1
+    for cons in constraints:
+        conditions *= options.get(cons)
+    return probabilities.get(conditions)

@@ -3,16 +3,31 @@ from node import Node
 
 
 # Example Query: $gibbs price schools=good location=ugly -u 10000 -d 0
+# Input: $python main.py <query node> [args] [options]
+# Args: evidence nodes to set e.g. school=bad
+# Options: required: -u #of iterations, -d #of iterations to discard
 def get_input():
-    args = sys.argv
-    query = args[2]
-    iterations = int(args[-3])
-    cost_conditions = []
-    for arg in args:
-        if not ("=" not in arg):
-            cost_conditions.append(arg)
+    """
+    :rtype: string, int, int, list
+    """
 
-    return query, iterations, cost_conditions
+    args = sys.argv[2:]
+
+    query = sys.argv[1]
+    discards = 0
+    iterations = 0
+    const_conditions = []
+
+    for i in range(len(args) - 1):
+        arg = args[i]
+        if '=' in arg:
+            const_conditions.append(arg)
+        elif '-d' in arg:
+            discards = int(args[i+1])
+        elif '-u' in arg:
+            iterations = int(args[i+1])
+
+    return query, discards, iterations, const_conditions
 
 
 def init_network():
@@ -27,15 +42,15 @@ def init_network():
     price = Node('price')
     size = Node('size')
     schools = Node('schools')
-    location.AddParernt(amenities)
-    location.AddParernt(neighborhood)
-    children.AddParernt(neighborhood)
-    schools.AddParernt(children)
-    price.AddParernt(schools)
-    price.AddParernt(size)
-    price.AddParernt(location)
-    price.AddParernt(age)
-    age.AddParernt(location)
+    location.AddParent(amenities)
+    location.AddParent(neighborhood)
+    children.AddParent(neighborhood)
+    schools.AddParent(children)
+    price.AddParent(schools)
+    price.AddParent(size)
+    price.AddParent(location)
+    price.AddParent(age)
+    age.AddParent(location)
     amenities.AddChild(location)
     neighborhood.AddChild(location)
     neighborhood.AddChild(children)

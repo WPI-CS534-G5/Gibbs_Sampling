@@ -1,146 +1,172 @@
-
 import settings
-from prob import options, probabilities
+from prob import options
 from random import randint, randrange
+from node import Node, CalculateProbability
 
+# ################################################# #
+# ####### Initialize Network and Statistics ####### #
+# ################################################# #
 
-query, iterations, evidence = settings.get_input()  # get command line input
-Network = settings = settings.init_network()  # initialize network
+query, discards, iterations, evidence = settings.get_input()  # get command line input
+network = settings = settings.init_network()  # initialize network
 
 # First set the evidence nodes
-evidence_str = ''.join(evidence)
-for node in Network:
+for node in network:
     for condition in evidence:
-        if condition.find(node.GetName()) != -1:
+        if condition.find(node.GetName()) is not -1:
             node.SetStatus(condition)
 
 # Find the queried node
-qNode = None
-for node in Network:
+qNode = None  # type: Node
+for node in network:
     if query == node.GetName():
         qNode = node
         break
 
-Stats = []
+# Find options to calculate probabilities for
+stats = []
 for key in options:
     if qNode.GetName() in key:
-        Stats.append(0)
+        stats.append(0)
+
+# ########################################### #
+# ####### Helper Function Definitions ####### #
+# ########################################### #
+
+
+# Update Nodes in Markov Blanket
+def update_blanket(node):
+    # Get conditionals of node
+    conds = []
+    for key in options:
+        if node.GetName() in key:
+            conds.append(key)
+
+    # ####### Probability Calculations ####### #
+
+    # Get Node's Conditional Probabilities
+    result = conditional_probability(conds, node)
+
+    # Calculate the Normalizing factor
+    Sum = sum(result)
+    a = 1 / Sum
+    # Normalize the probabilities
+    result = [prob * a for prob in result]
+
+    # Calculate ranges for values conditions
+    ranges = []
+    for i in range(0, len(result) - 1):
+        if len(ranges) < 1:
+            ranges.append(result[0])
+        else:
+            ranges.append(result[i] + ranges[i - 1])
+
+    # Calculate new condition for node
+    new_condition = None
+    rand_num = float(randrange(0, 1000)) / 1000
+
+    for i in range(0, len(conds)-1):
+        if rand_num <= ranges[i]:
+            new_condition = conds[i]
+    if not new_condition:
+        new_condition = conds[-1]
+
+    node.SetStatus(new_condition)
+
+
+# Find conditional probability of node based on its Markov Blanket
+def conditional_probability(conditions, node):
+    probs = list()
+
+    # Loop through node's conditions
+    for cond in conditions:
+        sub_condition_parents = list()
+        sub_condition_parents.append(cond)
+
+        # Loop through Node's Parents
+        for parent in node.GetParents():
+            sub_condition_parents.append(parent.status)
+        conditional_prob = CalculateProbability(sub_condition_parents)
+
+        # Loop through Node's Children
+        for child in node.GetChildren():
+            sub_condition_children = list()
+            sub_condition_children.append(cond)
+            sub_condition_children.append(child.GetStatus())
+
+            # Loop through Children's Parents
+            for parent in child.GetParents():
+                if parent.GetName() not in cond:
+                    sub_condition_children.append(parent.GetStatus())
+            conditional_prob = conditional_prob * CalculateProbability(sub_condition_children)
+
+        probs.append(conditional_prob)
+
+    return probs
 
 
 # Function for initializing nodes that are not evidence nodes
-def InitializeNodes(Network, cost_conditions):
-    for node in Network:
-        if node.GetName() not in cost_conditions:
-            node.SetStatus(None)
+def initialize_nodes(net, cost_conditions):
+    for n in net:
+        if n.GetName() not in cost_conditions:
+            n.SetStatus(None)
 
 
-# Function for randomly assinging probabilities to the nodes that are not evidence nodes
-def RandomizeNodes(Network, cost_conditions):
-    for node in Network:
-        if node.GetName() not in cost_conditions:
-            cnt = 0
-            conds = []
+# Function for randomly assigning probabilities to the nodes that are not evidence nodes
+def randomize_nodes(net, const_conditions):
+    for n in net:
+        if n.GetName() not in const_conditions:
+            conditions = []
             for key in options:
-                if node.GetName() in key:
-                    conds.append(key)
-            node.SetStatus(conds[randint(0, len(conds)-1)])
+                if n.GetName() in key:
+                    conditions.append(key)
+            n.SetStatus(conditions[randint(0, len(conditions)-1)])
 
 
-# Iterate for as much as input
-for iteration in range(0, iterations):
+# ################################# #
+# ####### Begin Gibbs Logic ####### #
+# ################################# #
 
-    # Second randomly assign other nodes
-    RandomizeNodes(Network, evidence)
+qNode_conditions = []  # List of conditions
+for key in options:
+    if qNode.GetName() in key:
+        qNode_conditions.append(key)
 
-    # Iterate through the nodes of the Markov Blanket of the queried node
+
+for iteration in range(1, iterations):
+    randomize_nodes(network, evidence)  # Randomly assign other nodes
+
+    # For each node in Markov Blanket of Queried Node
     for node in qNode.GetMarkovBlanket():
+        update_blanket(node)
 
-        Pn = []  # List of probabilities
-        a = None  # Normalizing factor
-        Result = []  # Resulting probabilities
+    # ####### End of qNode Markov Blanket ####### #
 
-        cnt = 0  # Number of types of predictors
-        conds = []  # List of types of predictors
+    # Calculate Probability of qNode
+    print qNode_conditions
+    exit(0)
+    results = conditional_probability(qNode_conditions, qNode)
+    for i in range(0, len(qNode_conditions)):
+        stats[i] = stats[i] + results[i]
 
-        # Get conditionals of node
-        for key in options:
-            if node.GetName() in key:
-                cnt += 1
-                conds.append(key)
 
-        # Loop through node's conditions
-        for cond in conds:
-            # For Nodes Parents
-            SubConstraints = list()
-            SubConstraints.append(cond)
-            for parent in node.GetParents():
-                SubConstraints.append(parent.status)
-            CondProb = node.CalculateProbability(SubConstraints)
+# ################################################# #
+# ####### Final Step: Calculate Probability ####### #
+# ################################################# #
 
-            # For Nodes Children and Children's Parents
-            print node.GetName()
-            for child in node.GetChildren():
-                SubConstraints = list()
-                SubConstraints.append(cond)
-                SubConstraints.append(child.GetStatus())
-                for parent in child.GetParents():
-                    if parent.GetName() not in cond:
-                        SubConstraints.append(parent.GetStatus())
+# Divide by iterations
+stats = [stat / iterations for stat in stats]
 
-                CondProb = CondProb * node.CalculateProbability(SubConstraints)
-            Result.append(CondProb)
-
-        # Calculate the Normalizing factor
-        Sum = sum(Result)
-        a = 1 / Sum
-
-        # Normalize the probabilities
-        for pr in Result:
-            pr = pr * a
-
-        NormResult = []
-        for i in range(0, len(Result) - 1):
-            if len(NormResult) < 1:
-                NormResult.append(Result[0])
-            NormResult.append(Result[i] + NormResult[i - 1])
-
-        RandNum = float(randrange(0, 1000)) / 1000
-
-        FinalResult = None
-
-        for i in range(0, len(NormResult)):
-            if RandNum <= NormResult[i]:
-                FinalResult = conds[i]
-
-        qNode.SetStatus(FinalResult)
-
-    # ############ End of qNode Markov Blanket
-
-    for key in options:
-        if qNode.GetName() in key:
-            cnt = cnt + 1
-            conds.append(key)
-
-    Conds2 = []
-    for i in range(0, cnt):
-        for parent in qNode.GetParents():
-            Conds2.append(parent.Status)
-        Conds2.append(conds[i])
-        Stats[i] = Stats[i] + qNode.CalculateProbability(conds)
-
-for stat in Stats:
-    stat = stat / iterations
+print stats
 
 # Calculate the Normalizing factor
-Sum = None
-for stat in Stats:
-    Sum = Sum + stat
+Sum = sum(stats)
 a = 1 / Sum
 
 # Normalize the probabilities
-for stat in Stats:
+for stat in stats:
     stat = stat * a
 
-for i in range(0, cnt):
-    print('P(' + conds[i] + ') = ' + Stats[i])
+for i in range(0, len(qNode_conditions)):
+    print 'P(' + qNode_conditions[i] + ') = ' + str(stats[i])
 
