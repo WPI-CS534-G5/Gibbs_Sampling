@@ -126,6 +126,7 @@ def randomize_nodes(net, const_conditions):
 # ################################# #
 # ####### Begin Gibbs Logic ####### #
 # ################################# #
+csvFile = open('output.csv', 'w')
 
 qNode_conditions = []  # List of conditions
 for key in options:
@@ -143,13 +144,16 @@ for iteration in range(1, iterations):
     # ####### End of qNode Markov Blanket ####### #
 
     # Calculate Probability of qNode
-    print qNode_conditions
-    exit(0)
     results = conditional_probability(qNode_conditions, qNode)
-    for i in range(0, len(qNode_conditions)):
-        stats[i] = stats[i] + results[i]
+    if iteration > discards:
+        for i in range(0, len(qNode_conditions)):
+            stats[i] = stats[i] + results[i]
+
+        stats_str = ','.join(str(stat/(iteration-discards)) for stat in stats) + '\n'
+        csvFile.write(stats_str)
 
 
+csvFile.close()
 # ################################################# #
 # ####### Final Step: Calculate Probability ####### #
 # ################################################# #
